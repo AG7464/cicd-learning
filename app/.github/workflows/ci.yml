@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [dev]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r app/requirements.txt
+
+      - name: Verify app imports
+        run: python -c "import sys; sys.path.insert(0, 'app'); import main; print('App imports successfully')"
+
+      - name: Build Docker image
+        run: |
+          cd app
+          docker build -t myapp:ci-test .
+          echo "Image built successfully: $(docker images myapp:ci-test --format '{{.Size}}')"   
