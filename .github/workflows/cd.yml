@@ -34,4 +34,30 @@ jobs:
           docker build -t myapp:test ./app
           docker tag myapp:test ${{ steps.ecr.outputs.registry }}/myapp:${{ github.sha }}
           docker push ${{ steps.ecr.outputs.registry }}/myapp:${{ github.sha }}
+      
+
+      
+      - name: Download ECS task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition myapp-taskdef \
+            --query taskDefinition \
+            > task-definition.json
+
+      - name: Update task definition with new image
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        id: render-task-definition
+        with:
+          task-definition: task-definition.json
+          container-name: myapp-container
+          image: ${{ steps.ecr.outputs.registry }}/myapp:${{ github.sha }}
+
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render-task-definition.outputs.task-definition }}
+          service: myapp-taskdef-service
+          cluster: myapp-cluster
+          wait-for-service-stability: true
+
 
